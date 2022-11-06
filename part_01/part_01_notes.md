@@ -92,3 +92,7 @@ const App = () => {
 }
 ```
 
+---
+
+### b) JavaScript
+
