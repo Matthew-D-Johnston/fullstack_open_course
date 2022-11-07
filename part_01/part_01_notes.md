@@ -96,3 +96,391 @@ const App = () => {
 
 ### b) JavaScript
 
+
+
+---
+
+### c) Component state, event handlers
+
+#### Stateful component
+
+* React has a state hook.
+
+  ```javascript
+  import { useState } from 'react'
+  
+  const App = () => {
+    const [ counter, setCounter ] = useState(0)
+  
+    setTimeout(
+      () => setCounter(counter + 1),
+      1000
+    )
+  
+    return (
+      <div>{counter}</div>
+    )
+  }
+  
+  export default App
+  ```
+
+* Import the `useState` function:
+
+  ```javascript
+  import { useState } from 'react'
+  ```
+
+* We can call the function with an initial value of `0`:
+
+  ```javascript
+  const [ counter, setCounter ] = useState(0);
+  ```
+
+  The function returns an array that contains two items. We assign the items to the variables `counter` and `setCounter` by using the destructuring assignment syntax shown earlier.  
+
+  The `counter` variable is assigned the initial value of _state_ which is zero. The variable `setCounter` is assigned to a function that will be used to _modify the state_.
+
+* The application calls the `setTimeout` function and passes it two parameters: a function to increment the counter state and a timeout of one second:
+
+  ```javascript
+  setTimeout(
+  	() => setCounter(counter + 1),
+    1000
+  )
+  ```
+
+* The function passed as the first parameter to the `setTimeout` function is invoked one second after calling the `setTimeout` function:
+
+  ```javascript
+  () => setCounter(counter + 1);
+  ```
+
+* When the state-modifying function `setCounter` is called, _React re-renders the component_ which means that the function body of the component function gets re-executed:
+
+  ```javascript
+  () => {
+    const [ counter, setCounter ] = useState(0)
+  
+    setTimeout(
+      () => setCounter(counter + 1),
+      1000
+    )
+  
+    return (
+      <div>{counter}</div>
+    )
+  }
+  ```
+
+* The second time the component function is executed it calls the `useState` function and returns the new value of the state: `1`. Executing the function body again also makes a new function call to `setTimeout`, which executes the one second timeout and increments the `counter` state again.
+
+#### Event handling
+
+In React, registering an event handler function to the _click_ event happens like this:
+
+```javascript
+const App = () => {
+  const [ counter, setCounter ] = useState(0)
+
+  const handleClick = () => {
+    console.log('clicked')
+  }
+
+  return (
+    <div>
+      <div>{counter}</div>
+      <button onClick={handleClick}>
+        plus
+      </button>
+    </div>
+  )
+}
+```
+
+We set the value of the button's _onClick_ attribute to be a reference to the `handleClick` function defined in the code.  
+
+Now every click of the _plus_ button causes the `handleClick` function to be called, meaning that every click event will log a _clicked_ message to the browser console.
+
+#### Event handler is a function
+
+* The event handler is a function, not a function call.
+
+#### Passing state to child components
+
+* One best practice in React is to lift the state up in the component hierarchy. The documentation says: _Often, several components need to reflect the same changing data. We recommend lifting the shared state up to their closest common ancestor_.
+
+* So let's place the application's state in the _App_ component and pass it down to the _Display_ component through _props_:
+
+  ```javascript
+  const Display = (props) => {
+    return (
+    	<div>{props.counter}</div>
+    )
+  }
+  ```
+
+  Using the component is straightforward, as we only need to pass the state of the `counter` to it:
+
+  ```javascript
+  const App = () => {
+    const [ counter, setCounter ] = useState(0)
+  
+    const increaseByOne = () => setCounter(counter + 1)
+    const setToZero = () => setCounter(0)
+  
+    return (
+      <div>
+        <Display counter={counter}/>
+        <button onClick={increaseByOne}>
+          plus
+        </button>
+        <button onClick={setToZero}> 
+          zero
+        </button>
+      </div>
+    )
+  }
+  ```
+
+  #### Changes in state cause rerendering
+
+  Let's go over the main principles of how an application works once more.  
+
+  When the application starts, the code in `App` is executed. This code uses a useState hook to create the application state, setting an initial value of the variable `counter`. This component contains the `Display` component—which displays the counter's value, 0—and three `Button` components. The buttons all have event handlers, which are used to change the state of the counter.  
+
+  When one of the buttons is clicked, the event handler is executed. The event handler changes the state of the `App` component with the `setCounter` function. Calling a function which changes the state causes the component to rerender.  
+
+  So, if a user clicks the _plus_ button, the button's event handler changes the value of `counter` to `1`, and the `App` component is pre-rendered. This causes its subcomponents `Display` and `Button` to also be re-rendered. `Display` receives the new value of the counter, `1`, as props. The `Button` components receive event handlers which can be used to change the state of the counter.
+
+---
+
+### d) A more complex state, debugging React apps
+
+#### Complex state
+
+* In our previous example the application state was simple as it was comprised of a single integer. What if our application requires a more complex state?
+
+* In most cases the easiest and best way to accomplish this is by using the `useState` function multiple times to create separate "pieces" of state.
+
+* But we could also implement similar functionality by using a single state object to maintain state for various properties:
+
+  ```javascript
+  const App = () => {
+    const [clicks, setClicks] = useState({
+      left: 0, right: 0
+    })
+  
+    const handleLeftClick = () => {
+      const newClicks = { 
+        left: clicks.left + 1, 
+        right: clicks.right 
+      }
+      setClicks(newClicks)
+    }
+  
+    const handleRightClick = () => {
+      const newClicks = { 
+        left: clicks.left, 
+        right: clicks.right + 1 
+      }
+      setClicks(newClicks)
+    }
+  
+    return (
+      <div>
+        {clicks.left}
+        <button onClick={handleLeftClick}>left</button>
+        <button onClick={handleRightClick}>right</button>
+        {clicks.right}
+      </div>
+    )
+  }
+  ```
+
+* Object spread syntax:
+
+  ```javascript
+  const handleLeftClick = () => {
+    const newClicks = { 
+      ...clicks, 
+      left: clicks.left + 1 
+    }
+    setClicks(newClicks)
+  }
+  
+  const handleRightClick = () => {
+    const newClicks = { 
+      ...clicks, 
+      right: clicks.right + 1 
+    }
+    setClicks(newClicks)
+  }
+  ```
+
+  The syntax may seem a bit strange at first. In practice `{ ...clicks }` creates a new object that has copies of all of the properties of the `clicks` object. When we specify a particular property—e.g. _right_ in `{ ...clicks, right: 1 }`, the value of the `right` property in the new object will be `1`.  
+
+  In the example above, this:
+
+  ```javascript
+  { ...clicks, right: clicks.right + 1 }
+  ```
+
+  creates a copy of the `clicks` object where the value of the `right` property is increased by one.
+
+* Some readers might be wondering why we didn't just update the state directly, like this:  
+
+  ```javascript
+  const handleLeftClick = () => {
+    clicks.left++;
+    setClicks(clicks);
+  };
+  ```
+
+  The application appears to work. However, _it is forbidden in React to mutate state directly_, since it can result in unexpected side effects. Changing state has to always be done by setting the state to a new object. If properties from the previous state object are not changed, they need to simply be copied, which is done by copying those properties into a new object, and setting that as the new state.  
+
+  Storing all of the state in a single state object is a bad choice for this particular application; there's no apparent benefit and the resulting application is a lot more complex. In this case storing the click counters into separate pieces of state is a far more suitable choice.  
+
+#### Handling arrays
+
+* Let's add a piece of state to our application containing an array `allClicks` that remembers every click that has occurred in the application.
+
+  ```javascript
+  const App = () => {
+    const [left, setLeft] = useState(0)
+    const [right, setRight] = useState(0)
+    const [allClicks, setAll] = useState([])
+  
+    const handleLeftClick = () => {
+      setAll(allClicks.concat('L'))
+      setLeft(left + 1)
+    }
+  
+    const handleRightClick = () => {
+      setAll(allClicks.concat('R'))
+      setRight(right + 1)
+    }
+  
+    return (
+      <div>
+        {left}
+        <button onClick={handleLeftClick}>left</button>
+        <button onClick={handleRightClick}>right</button>
+        {right}
+        <p>{allClicks.join(' ')}</p>
+      </div>
+    )
+  }
+  ```
+
+* Every click is stored into a separate piece of state called `allClicks` that is initialized as an empty array:
+
+  ```javascript
+  const [allClicks, setAll] = useState([]);
+  ```
+
+* When the _left_ button is clicked, we add the letter _L_ to the `allClicks` array:
+
+  ```javascript
+  const handleLeftClick = () => {
+    setAll(allClicks.concat('L'));
+    setLeft(left + 1);
+  }
+  ```
+
+* The piece of state stored in `allClicks` is now set to be an array that contains all of the items of the previous state array plus the letter _L_. Adding the new item to the array is accomplished with the concat method, that does not mutate the existing array but rather returns a _new copy of the array_ with the item added to it.  
+
+* As mentioned previously, it's also possible in JavaScript to add items to an array with the push method. If we add the item by pushing it to the `allClicks` array and the updating the state, the application would still appear to work:
+
+  ```javascript
+  const handleLeftClick = () => {
+    allClicks.push('L')
+    setAll(allClicks)
+    setLeft(left + 1)
+  }
+  ```
+
+* However, don't do this. As mentioned previously, the state of React components like `allClicks` must not be mutated directly. Even if mutating state appears to work in some cases, it can lead to problems that are very hard to debug.
+
+#### Conditional rendering
+
+* conditional rendering describes a situation where a React component renders completely different React elements depending on the state of the application.
+* React also offers many other ways of doing conditional rendering.
+
+#### Rules of Hooks
+
+* There are a few limitations and rules we have to follow to ensure that our application uses hooks-based state functions correctly.
+
+* The `useState` function (as well as the `useEffect` function introduced later on in the course) _must not be called_ from inside of a loop, a conditional expression, or any place that is not a function defining a component. This must be done to ensure that the hooks are always called in the same order, and if this isn't the case the application will behave erratically.
+
+* To recap, hooks may only be called from the inside of a function body that defines a React component:
+
+  ```javascript
+  const App = () => {
+    // these are ok
+    const [age, setAge] = useState(0)
+    const [name, setName] = useState('Juha Tauriainen')
+  
+    if ( age > 10 ) {
+      // this does not work!
+      const [foobar, setFoobar] = useState(null)
+    }
+  
+    for ( let i = 0; i < age; i++ ) {
+      // also this is not good
+      const [rightWay, setRightWay] = useState(false)
+    }
+  
+    const notGood = () => {
+      // and this is also illegal
+      const [x, setX] = useState(-1000)
+    }
+  
+    return (
+      //...
+    )
+  }
+  ```
+
+#### Event Handling Revisited
+
+* Event handlers must always be a function or a reference to a function.
+
+#### Do Not Define Components Within Components
+
+Let's start displaying the value of the application into its own _Display_ component.  
+
+We will change the application by defining a new component inside of the _App_-component.  
+
+```javascript
+// This is the right place to define a component
+const Button = (props) => (
+  <button onClick={props.handleClick}>
+    {props.text}
+  </button>
+)
+
+const App = () => {
+  const [value, setValue] = useState(10)
+
+  const setToValue = newValue => {
+    console.log('value now', newValue)
+    setValue(newValue)
+  }
+
+  // Do not define components inside another component
+  const Display = props => <div>{props.value}</div>
+
+  return (
+    <div>
+      <Display value={value} />
+      <Button handleClick={() => setToValue(1000)} text="thousand" />
+      <Button handleClick={() => setToValue(0)} text="reset" />
+      <Button handleClick={() => setToValue(value + 1)} text="increment" />
+    </div>
+  )
+}
+```
+
+The application still appears to work, but don't implement components like this! Never define components inside of other components. The method provides no benefits and leads to many unpleasant problems. The biggest problems are due to the fact that React treats a component defined inside of another component as a new component in every render. This makes it impossible for React to optimize the component.  
+
