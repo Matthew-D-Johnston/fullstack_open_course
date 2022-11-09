@@ -26,7 +26,6 @@ const App = () => {
     let newVotes = {
       ...votes
     };
-    console.log(newVotes);
     newVotes[anecdotes[selected]] += 1;
     setVotes(newVotes);
   }
