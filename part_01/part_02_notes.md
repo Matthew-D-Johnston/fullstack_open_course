@@ -221,3 +221,185 @@ Note that when importing our own components, their location must be given _in re
 
 The period—.—in the beginning refers to the current directory, so the module's location is a file called _Note.js_ in the _components_ sub-directory of the current directory. The filename extension `.js` can be omitted.  
 
+---
+
+### b) Forms
+
+Let's continue expanding our application by allowing users to add new notes.  
+
+In order to get our page to update when new notes are added it's best to store the notes in the _App_ component's state. Let's import the `useState` function and use it to define a piece of state that gets initialized with the initial notes array passed in the props.  
+
+```javascript
+import { useState } from 'react'
+import Note from './components/Note'
+
+const App = (props) => {
+  const [notes, setNotes] = useState(props.notes)
+
+  return (
+    <div>
+      <h1>Notes</h1>
+      <ul>
+        {notes.map(note => 
+          <Note key={note.id} note={note} />
+        )}
+      </ul>
+    </div>
+  )
+}
+
+export default App
+```
+
+Next, let's add an HTML form to the component that will be used for adding new notes.
+
+```javascript
+const App = (props) => {
+  const [notes, setNotes] = useState(props.notes)
+
+  const addNote = (event) => {
+    event.preventDefault()
+    console.log('button clicked', event.target)
+  }
+
+  return (
+    <div>
+      <h1>Notes</h1>
+      <ul>
+        {notes.map(note => 
+          <Note key={note.id} note={note} />
+        )}
+      </ul>
+      <form onSubmit={addNote}>
+        <input />
+        <button type="submit">save</button>
+      </form>   
+    </div>
+  )
+}
+```
+
+We have added the `addNote` function as an event handler to the form element that will be called when the form is submitted, by clicking the submit button.  
+
+How do we access the data contained in the form's _input_ element?  
+
+#### Controlled component
+
+There are many ways to accomplish this; the first method we will take a look at is through the use of so-called controlled components.  
+
+Let's add a new piece of state called `newNote` for storing the user-submitted input and let's set it as the _input_ element's _value_ attribute:
+
+```javascript
+const App = (props) => {
+  const [notes, setNotes] = useState(props.notes)
+  const [newNote, setNewNote] = useState(
+    'a new note...'
+  ) 
+
+  const addNote = (event) => {
+    event.preventDefault()
+    console.log('button clicked', event.target)
+  }
+
+  return (
+    <div>
+      <h1>Notes</h1>
+      <ul>
+        {notes.map(note => 
+          <Note key={note.id} note={note} />
+        )}
+      </ul>
+      <form onSubmit={addNote}>
+        <input value={newNote} />
+        <button type="submit">save</button>
+      </form>   
+    </div>
+  )
+}
+```
+
+The placeholder text stored as the initial value of the `newNote` state appears in the _input_ element, but the input text can't be edited. The console displays a warning that gives us a clue as to what might be wrong:
+
+![fullstack content](https://fullstackopen.com/static/2905b1f4edfe786a70566fe4a7a3a0e9/5a190/7e.png)
+
+Since we assigned a piece of the _App_ component's state as the _value_ attribute of the input element, the _App_ component now controls the behaviour of the input element.  
+
+In order to enable editing of the input element, we have to register an _event handler_ that synchronizes the changes made to the input with the component's state:  
+
+```javascript
+const App = (props) => {
+  const [notes, setNotes] = useState(props.notes)
+  const [newNote, setNewNote] = useState(
+    'a new note...'
+  ) 
+
+  // ...
+
+  const handleNoteChange = (event) => {
+    console.log(event.target.value)
+    setNewNote(event.target.value)
+  }
+
+  return (
+    <div>
+      <h1>Notes</h1>
+      <ul>
+        {notes.map(note => 
+          <Note key={note.id} note={note} />
+        )}
+      </ul>
+      <form onSubmit={addNote}>
+        <input
+          value={newNote}
+          onChange={handleNoteChange}
+        />
+        <button type="submit">save</button>
+      </form>   
+    </div>
+  )
+}
+```
+
+We have now registered an event handler to the _onChange_ attribute of the form's _input_ element:
+
+```javascript
+<input
+	value={newNote}
+	onChange={handleNoteChange}
+/>
+```
+
+The event handler is called every time _a change occurs in the input element_. The event handler function receives the event object as its `event` parameter:  
+
+```javascript
+const handleNoteChange = (event) => {
+  console.log(event.target.value)
+  setNewNote(event.target.value)
+}
+```
+
+The `target` property of the event object now corresponds to the controlled _input_ element, and `event.target.value` refers to the input value of that element.  
+
+Note that we did not need to call the `event.preventDefault()` method lik we did in the _onSubmit_ event handler. This is because there is no default action that occurs on an input change, unlike on a form submission.  
+
+Now the _App_ component's `newNote` state reflects the current value of the input, which means that we can complete the `addNote` function for creating new notes:
+
+```javascript
+const addNote = (event) => {
+  event.preventDefault()
+  const noteObject = {
+    content: newNote,
+    date: new Date().toISOString(),
+    important: Math.random() < 0.5,
+    id: notes.length + 1,
+  }
+
+  setNotes(notes.concat(noteObject))
+  setNewNote('')
+}
+```
+
+First, we create a new object for the note called `noteObject` that will receive its content from the component's `newNote` state. The unique identifier _id_ is generated based on the total number of notes. This method works for our application since notes are never deleted. With the help of the `Math.random()` function, our note has a 50% chance of being marked as important.  
+
+#### Filtering Displayed Elements
+
