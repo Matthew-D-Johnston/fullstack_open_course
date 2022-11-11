@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 
 const Filter = ({ filter, handleFilterChange }) => {
   return (
@@ -9,14 +10,14 @@ const Filter = ({ filter, handleFilterChange }) => {
   );
 };
 
-const PersonForm = ({ handleFormSubmission, newName, handleNameChange, newPhone, handlePhoneChange }) => {
+const PersonForm = ({ handleFormSubmission, newName, handleNameChange, newNumber, handleNumberChange }) => {
   return (
     <form onSubmit={handleFormSubmission}>
       <div>
         name: <input value={newName} onChange={handleNameChange} />
       </div>
       <div>
-        number: <input value={newPhone} onChange={handlePhoneChange} />
+        number: <input value={newNumber} onChange={handleNumberChange} />
       </div>
       <div>
         <button type="submit">add</button>
@@ -29,19 +30,25 @@ const Persons = ({ filteredPersons, filter }) => {
   return (
     <ul>
       {filteredPersons(filter).map(person => {
-        return <li key={person.name}>{person.name} {person.phone}</li>;
+        return <li key={person.id}>{person.name} {person.number}</li>;
       })}
     </ul>
   );
 };
 
 const App = () => {
-  const [persons, setPersons] = useState([
-    { name: 'Arto Hellas', phone: '040-1234567' }
-  ]);
+  const [persons, setPersons] = useState([]);
   const [newName, setNewName] = useState('');
-  const [newPhone, setNewPhone] = useState('');
+  const [newNumber, setNewNumber] = useState('');
   const [filter, setFilter] = useState('');
+
+  useEffect(() => {
+    axios
+      .get('http://localhost:3001/persons')
+      .then(response => {
+        setPersons(response.data);
+      });
+  }, []);
 
   const handleFormSubmission = (event) => {
     event.preventDefault();
@@ -49,9 +56,9 @@ const App = () => {
     if (persons.find(person => person.name === newName)) {
       alert(`${newName} is already added to phonebook`);
     } else {
-      setPersons(persons.concat({ name: newName, phone: newPhone }));
+      setPersons(persons.concat({ name: newName, number: newNumber, id: persons.length + 1 }));
       setNewName('');
-      setNewPhone('');
+      setNewNumber('');
     }
   }
 
@@ -59,8 +66,8 @@ const App = () => {
     setNewName(event.target.value);
   }
 
-  const handlePhoneChange = (event) => {
-    setNewPhone(event.target.value);
+  const handleNumberChange = (event) => {
+    setNewNumber(event.target.value);
   }
 
   const handleFilterChange = (event) => {
@@ -81,8 +88,8 @@ const App = () => {
         handleFormSubmission={handleFormSubmission}
         newName={newName}
         handleNameChange={handleNameChange}
-        newPhone={newPhone}
-        handlePhoneChange={handlePhoneChange}
+        newNumber={newNumber}
+        handleNumberChange={handleNumberChange}
       />
       <h3>Numbers</h3>
       <Persons filteredPersons={filteredPersons} filter={filter} />
