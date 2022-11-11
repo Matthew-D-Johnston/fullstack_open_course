@@ -401,5 +401,59 @@ const addNote = (event) => {
 
 First, we create a new object for the note called `noteObject` that will receive its content from the component's `newNote` state. The unique identifier _id_ is generated based on the total number of notes. This method works for our application since notes are never deleted. With the help of the `Math.random()` function, our note has a 50% chance of being marked as important.  
 
-#### Filtering Displayed Elements
+---
+
+### c) Getting data from server
+
+* Create a file named _db.json_ in the root directory of the project.
+
+  ```json
+  {
+    "notes": [
+      {
+        "id": 1,
+        "content": "HTML is easy",
+        "date": "2022-1-17T17:30:31.098Z",
+        "important": true
+      },
+      {
+        "id": 2,
+        "content": "Browser can execute only JavaScript",
+        "date": "2022-1-17T18:39:34.091Z",
+        "important": false
+      },
+      {
+        "id": 3,
+        "content": "GET and POST are the most important methods of HTTP protocol",
+        "date": "2022-1-17T19:20:14.298Z",
+        "important": true
+      }
+    ]
+  }
+  ```
+
+* JSON Server is a tool meant to be used during software development that can act as a server.
+
+* JSON server can be installed globally using the command `num install -g json-server`.  
+
+* After installing, run the following command to run the json-server. The _json-server_ starts running on port 3000 by default; but since projects created using create-react-app reserve port 3000, we must define an alternate port, such as port 3001, for the json-server. The --watch option automatically looks for any saved changes to db.json.
+
+  ```
+  json-server --port 3001 --watch db.json
+  ```
+
+  However, a global installation is not necessary. From the root directory of your app, we can run the _json-server_ using the command `npx`:
+
+  ```
+  npx json-server --port 3001 --watch db.json
+  ```
+
+* Let's navigate to the address http://localhost:3001/notes in the browser. We can see that _json-server_ serves the notes we previously wrote to the file in JSON format:
+
+  ![fullstack content](https://fullstackopen.com/static/37694498d0930f7b32df06ee8de181e6/5a190/14e.png)
+
+* Going forward, the idea will be to save the notes to the server, which in this case means saving them to the json-server. The React code fetches the notes from the server and renders them to the screen. Whenever a new note is added to the application, the React code also sends it to the server to make the new note persist in "memory".  
+* json-server stores all the data in the _db.json_ file, which resides on the server. In the real world, data would be stored in some kind of database. However, json-server is a handy tool that enables the use of server-side functionality in the development phase without the need to program any of it.  
+
+#### The browser as a runtime environment
 
