@@ -736,3 +736,56 @@ First, we create a new object for the note called `noteObject` that will receive
 
 ---
 
+### d) Altering data in server
+
+* When creating notes in our application, we would naturally want to store them in some backend server. The json-server package claims to be a so-called REST or RESTful API in its documentation.
+
+#### REST
+
+* In REST terminology, we refer to individual data objects, such as the notes in our application, as _resources_. Every resource has a unique address associated with it—its URL. According to a general convention used by json-server, we would be able to locate an individual note at the resource URL _notes/3_, where 3 is the id of the resource. The _notes_ url, on the other hand, would point to a resource collection containing all the notes.  
+* Resources are fetched from the server with HTTP GET requests. For instance, an HTTP GET request to the URL _notes/3_ will return the note that has the id number 3. An HTTP GET request to the _notes_ URL would return a list of all notes.
+* Creating a new resource for storing a note is done by making an HTTP POST request to the _notes_ URL according to the REST convention that the json-server adheres to. The data for the new note resource is sent in the _body_ of the request.  
+* json-server requires all data to be sent in JSON format. What this means in practice is that the data must be a correctly formatted string, and that the request must contain the _Content-Type_ request header with the value _application/json_.
+
+#### Cleaner Syntax for Defining Object Literals
+
+* Consider a situation where we have the following values assigned to variables:
+
+  ```javascript
+  const name = 'Leevi'
+  const age = 0
+  ```
+
+* In older versions of JavaScript we had to define an object like this:
+
+  ```javascript
+  const person = {
+    name: name,
+    age: age
+  }
+  ```
+
+* However, since both the property fields and the variable names in the object are the same, it's enough to simply write the following in ES6 JavaScript:
+
+  ```javascript
+  const person = { name, age }
+  ```
+
+* The result is identical for both expressions. They both create an object with a _name_ property with the value _Leevi_ and an _age_ property with the value _0_.
+
+---
+
+### e) Adding styles to React app
+
+
+
+
+
+
+
+
+
+
+
+
+
