@@ -603,3 +603,256 @@
 * Middleware functions are called in the order that they're taken into use with the express server object's *use* method. Notice that json-parser is taken into use before the *requestLogger* middleware, because otherwise *request.body* will not be initialized when the logger is executed!
 
 * Middleware functions have to be taken into use before routes if we want them to be executed before the route event handlers are called. There are also situations where we want to define middleware functions after routes. In practice, this means that we are defining middleware functions that are only called if no route handles the HTTP request.
+
+---
+
+### b) Deploying app to internet
+
+* Next let's connect the frontend we made in [part 2](https://fullstackopen.com/en/part2) to our own backend.
+
+* In the previous part, the frontend could ask for the list of notes from the json-server we had as a backend, from the address http://localhost:3001/notes. Our backend has a slightly different url structure now, as the notes can be found at http://localhost:3001/api/notes. Let's change the attribute **baseUrl** in the *src/services/notes.js* like so:
+
+  ```javascript
+  import axios from 'axios'
+  const baseUrl = 'http://localhost:3001/api/notes'
+  
+  const getAll = () => {
+    const request = axios.get(baseUrl)
+    return request.then(response => response.data)
+  }
+  
+  // ...
+  
+  export default { getAll, create, update }
+  ```
+
+* Now frontend's GET request to http://localhost:3001/api/notes does not work for some reason:
+
+  ![fullstack content](https://fullstackopen.com/static/da88e17cb078c89a6e7ba30d61fab0e6/5a190/3ae.png)
+
+* What's going on here? We can access the backend from a browser and from postman without any problems.
+
+#### Same origin policy and CORS
+
+* The issue lies with a thing called CORS, or Cross-Origin Resource Sharing.
+
+* According to Wikipedia:
+
+  _Cross-origin resource sharing (CORS) is a mechanism that allows restricted resources (e.g. fonts) on a web page to be requested from another domain outside the domain from which the first resource was served. A web page may freely embed cross-origin images, stylesheets, scripts, frames, and videos. Certain "cross-domain" requests, notably Ajax requests, are forbidden by default by the same-origin security policy_
+
+* In our context the problem is that, by default, the JavaScript code of an application that runs in a browser can only communicate with a server in the same origin. Because our server is in localhost port 3001, and our frontend in localhost port 3000, they do not have the same origin.
+
+* Keep in mind, that same origin policy and CORS are not specific to React or Node. They are in fact universal principles of the operation of web applications.
+
+* We can allow requests from other _origins_ by using Node's cors middleware.
+
+* In your backend repository, install _cors_ with the command
+
+  ```
+  npm install cors
+  ```
+
+* take the middleware to use and allow for requests from all origins:
+
+  ```javascript
+  const cors = require('cors');
+  
+  app.use(cors);
+  ```
+
+* And the frontend works! However, the functionality for changing the importance of notes has not yet been implemented to the backend.
+
+* The setup of our app looks now as follows:
+
+  ![fullstack content](https://fullstackopen.com/static/2aa09f5e7969cf4ec229aceb70abfa26/664c8/100.png)
+
+#### Application to the Internet
+
+* Now that the whole stack is ready, let's move our application to the internet.
+
+* For both Fly.io and Heroku, we need to change the definition of the port our application uses at the bottom of the *index.js* file like so:
+
+  ```javascript
+  const PORT = process.env.PORT || 3001
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`)
+  })
+  ```
+
+* Now we are using the port defined in the [environment variable](https://en.wikipedia.org/wiki/Environment_variable) *PORT* or port 3001 if the environment variable *PORT* is undefined. Fly.io and Heroku configure the application port based on that environment variable.
+
+##### Fly.io
+
+* Start by [authenticating](https://fly.io/docs/hands-on/sign-in/) via command line with the command:
+
+  ```
+  fly auth login
+  ```
+
+* Initializing an app happens by running the following command in the root directory of the app:
+
+  ```
+  fly launch
+  ```
+
+  Give the app a name or let Fly.io auto generate one. Pick a region where the app will be run. Do not create a postgress database for the app since it is not needed.  
+
+  The last question is "Would you like to deploy now?", answer yes and your app is also deployed to the Fly.io servers.
+
+* If all goes well, the app should now be up and running. You can open it in the browser with the command
+
+  ```
+  fly open
+  ```
+
+* After the initial setup, when the app code has been updated, it can be deployed to production with the command:
+
+  ```
+  fly deploy
+  ```
+
+* A particularly important command is `fly logs` that can be used to view server logs. It is best to keep logs always visible!
+
+* Fly.io creates a file *fly.toml* in the root of your app. The file contains all the configuration of your server. On this course we can mostly ignore the contents of the file.
+
+#### Frontend production build
+
+* So far we have been running React code in *development mode*. In development mode the application is configured to give clear error messages, immediately render code changes to the browser, and so on.
+
+* When the application is deployed, we must create a [production build](https://reactjs.org/docs/optimizing-performance.html#use-the-production-build) or a version of the application which is optimized for production.
+
+* A production build of applications created with *create-react-app* can be created with command [npm run build](https://github.com/facebookincubator/create-react-app#npm-run-build-or-yarn-build).
+
+* **NOTE:** at the time of writing (20th January 2022) create-react-app had a bug that causes the following error *TypeError: MiniCssExtractPlugin is not a constructor*
+
+* A possible fix is found from [here](https://github.com/facebook/create-react-app/issues/11930). Add the following to the file *package.json*
+
+  ```json
+  {
+    // ...
+    "resolutions": {
+      "mini-css-extract-plugin": "2.4.5"
+    }
+  }
+  ```
+
+  and run commands
+
+  ```
+  rm -rf package-lock.json
+  rm -rf node_modules
+  npm cache clean --force
+  npm install
+  ```
+
+  After these `npm run build` should work.
+
+* Let's run this command from the *root of the frontend project*.
+
+* This creates a directory called *build* (which contains the only HTML file of our application, *index.html* ) which contains the directory *static*. [Minified](https://en.wikipedia.org/wiki/Minification_(programming)) version of our application's JavaScript code will be generated to the *static* directory. Even though the application code is in multiple files, all of the JavaScript will be minified into one file. Actually all of the code from all of the application's dependencies will also be minified into this single file.
+
+#### Serving static files from the backend
+
+* One option for deploying the frontend is to copy the production build (the *build* directory) to the root of the backend repository and configure the backend to show the frontend's *main page* (the file *build/index.html*) as its main page.
+
+* To make express show *static content*, the page *index.html* and the JavaScript, etc., it fetches, we need a built-in middleware from express called [static](http://expressjs.com/en/starter/static-files.html).
+
+* When we add the following amidst the declarations of middlewares
+
+  ```
+  app.use(express.static('build'))
+  ```
+
+  whenever express gets an HTTP GET request it will first check if the *build* directory contains a file corresponding to the request's address. If a correct file is found, express will return it.
+
+* Now HTTP GET requests to the address *www.serversaddress.com/index.html* or *www.serversaddress.com* will show the React frontend. GET requests to the address *www.serversaddress.com/api/notes* will be handled by the backend's code.
+
+* Because of our situation, both the frontend and the backend are at the same address, we can declare *baseUrl* as a [relative](https://www.w3.org/TR/WD-html40-970917/htmlweb.html#h-5.1.2) URL. This means we can leave out the part declaring the server.
+
+  ```javascript
+  import axios from 'axios'
+  const baseUrl = '/api/notes'
+  
+  const getAll = () => {
+    const request = axios.get(baseUrl)
+    return request.then(response => response.data)
+  }
+  
+  // ...
+  ```
+
+* After the change, we have to create a new production build and copy it to the root of the backend repository.
+
+* The application can now be used from the *backend* address [http://localhost:3001](http://localhost:3001/):
+
+  ![fullstack content](https://fullstackopen.com/static/f5d8aad803a0a13ea9b29fd705774ec8/5a190/28e.png)
+
+* When we use a browser to go to the address [http://localhost:3001](http://localhost:3001/), the server returns the *index.html* file from the *build* repository. Summarized contents of the file are as follows:
+
+  ```html
+  <head>
+    <meta charset="utf-8"/>
+    <title>React App</title>
+    <link href="/static/css/main.f9a47af2.chunk.css" rel="stylesheet">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="/static/js/1.578f4ea1.chunk.js"></script>
+    <script src="/static/js/main.104ca08d.chunk.js"></script>
+  </body>
+  </html>
+  ```
+
+* The file contains instructions to fetch a CSS stylesheet defining the styles of the application, and two *script* tags which instruct the browser to fetch the JavaScript code of the application - the actual React application.
+
+* The React code fetches notes from the server address http://localhost:3001/api/notes and renders them to the screen.
+
+* The setup that is ready for product deployment looks as follows:
+
+  ![fullstack content](https://fullstackopen.com/static/6f33425b60b49278d57df7e62f81a32c/db910/101.png)
+
+* Unlike when running the app in a development environment, everything is now in the same node/express-backend that runs in localhost:3001. When the browser goes to the page, the file *index.html* is rendered. That causes the browser to fetch the product version of the React app. Once it starts to run, it fetches the json-data from the address localhost:3001/api/notes.
+
+#### The whole app to internet
+
+* After ensuring that the production version of the application works locally, commit the production build of the frontend to the backend repository, and push the code to Heroku again. In the case of Fly.io the new deployment is done with the command
+
+  ```
+  fly deploy
+  ```
+
+* [The application](https://obscure-harbor-49797.herokuapp.com/) works perfectly, except we haven't added the functionality for changing the importance of a note to the backend yet.
+
+* The setup looks like now as follows:
+
+  ![fullstack content](https://fullstackopen.com/static/26dbec11959a8d1418e81b31e11624d0/5a190/102.png)
+
+* The node/express-backend now resides in the Fly.io/Heroku server. When the root address that is of the form https://glacial-ravine-74819.herokuapp.com/ is accessed, the browser loads and executes the React app that fetches the json-data from the Heroku server.
+
+#### Streamlining deploying of the frontend
+
+* To create a new production build of the frontend without extra manual work, let's add some npm-scripts to the *package.json* of the backend repository.
+
+##### Fly.io
+
+* The script looks like this
+
+  ```javascript
+  {
+    "scripts": {
+      // ...
+      "build:ui": "rm -rf build && cd ../part2-notes/ && npm run build && cp -r build ../notes-backend",
+      "deploy": "fly deploy",
+      "deploy:full": "npm run build:ui && npm run deploy",    
+      "logs:prod": "fly logs"
+    }
+  }
+  ```
+
+* The script `npm run build:ui` builds the frontend and copies the production version under the backend repository. `npm run deploy` releases the current backend to Fly.io.
+
+* `npm run deploy:full` combines these two scripts.
+
+* There is also a script `npm run logs:prod` to show the Fly.io logs.
+
+* Note that the directory paths in the script *build:ui* depend on the location of repositories in the file system.
