@@ -998,3 +998,439 @@
   ```
 
 #### Backend connected to a database
+
+* Now we have enough knowledge to start using Mongo in our application.
+
+* Let's get a quick start by copy pasting the Mongoose definitions to the *index.js* file:
+
+  ```javascript
+  const mongoose = require('mongoose')
+  
+  // DO NOT SAVE YOUR PASSWORD TO GITHUB!!
+  const url =
+    `mongodb+srv://fullstack:<password>@cluster0.o1opl.mongodb.net/noteApp?retryWrites=true&w=majority`
+  
+  mongoose.connect(url)
+  
+  const noteSchema = new mongoose.Schema({
+    content: String,
+    date: Date,
+    important: Boolean,
+  })
+  
+  const Note = mongoose.model('Note', noteSchema)
+  ```
+
+* Let's change the handler for fetching all notes to the following form:
+
+  ```javascript
+  app.get('/api/notes', (request, response) => {
+    Note.find({}).then(notes => {
+      response.json(notes)
+    })
+  })
+  ```
+
+* The application works almost perfectly. The frontend assumes that every object has a unique id in the *id* field. We also don't want to return the mongo versioning field *__v* to the frontend.
+
+* One way to format the objects returned by Mongoose is to [modify](https://stackoverflow.com/questions/7034848/mongodb-output-id-instead-of-id) the *toJSON* method of the schema, which is used on all instances of the models produced with that schema. Modifying the method works like this:
+
+  ```javascript
+  noteSchema.set('toJSON', {
+    transform: (document, returnedObject) => {
+      returnedObject.id = returnedObject._id.toString()
+      delete returnedObject._id
+      delete returnedObject.__v
+    }
+  })
+  ```
+
+* Even though the *_id* property of Mongoose objects looks like a string, it is in fact an object. The *toJSON* method we defined transforms it into a string just to be safe. If we didn't make this change, it would cause more harm to us in the future once we start writing tests.
+
+* Let's respond to the HTTP request with a list of objects formatted with the *toJSON* method:
+
+  ```javascript
+  app.get('/api/notes', (request, response) => {
+    Note.find({}).then(notes => {
+      response.json(notes)
+    })
+  })
+  ```
+
+* Now the *notes* variable is assigned to an array of objects returned by Mongo. When the response is sent in the JSON format, the *toJSON* method of each object in the array is called automatically by the [JSON.stringify](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify) method.
+
+#### Database configuration into its own module
+
+* Before we refactor the rest of the backend to use the database, let's extract the Mongoose specific code into its own module.
+
+* Let's create a new directory for the module called *models*, and add a file called *note.js*:
+
+  ```javascript
+  const mongoose = require('mongoose')
+  
+  const url = process.env.MONGODB_URI
+  
+  console.log('connecting to', url)
+  
+  mongoose.connect(url)
+    .then(result => {
+      console.log('connected to MongoDB')
+    })
+    .catch((error) => {
+      console.log('error connecting to MongoDB:', error.message)
+    })
+  
+  const noteSchema = new mongoose.Schema({
+    content: String,
+    date: Date,
+    important: Boolean,
+  })
+  
+  noteSchema.set('toJSON', {
+    transform: (document, returnedObject) => {
+      returnedObject.id = returnedObject._id.toString()
+      delete returnedObject._id
+      delete returnedObject.__v
+    }
+  })
+  
+  module.exports = mongoose.model('Note', noteSchema)
+  ```
+
+* Defining Node [modules](https://nodejs.org/docs/latest-v8.x/api/modules.html) differs slightly from the way of defining [ES6 modules](https://fullstackopen.com/en/part2/rendering_a_collection_modules#refactoring-modules) in part 2.
+
+* The public interface of the module is defined by setting a value to the *module.exports* variable. We will set the value to be the *Note* model. The other things defined inside of the module, like the variables *mongoose* and *url* will not be accessible or visible to users of the module.
+
+* Importing the module happens by adding the following line to *index.js*:
+
+  ```javascript
+  const Note = require('./models/note');
+  ```
+
+* This way the *Note* variable will be assigned to the same object that the module defines.
+
+* The way that the connection is made has changed slightly:
+
+  ```javascript
+  const url = process.env.MONGODB_URI
+  
+  console.log('connecting to', url)
+  
+  mongoose.connect(url)
+    .then(result => {
+      console.log('connected to MongoDB')
+    })
+    .catch((error) => {
+      console.log('error connecting to MongoDB:', error.message)
+    })
+  ```
+
+* It's not a good idea to hardcode the address of the database into the code, so instead the address of the database is passed to the application via the *MONGODB_URI* environment variable.
+
+* The method for establishing the connection is now given functions for dealing with a successful and unsuccessful connection attempt. Both functions just log a message to the console about the success status:
+
+  ![fullstack content](https://fullstackopen.com/static/b7b715296b130693831cc719ea8d2f99/5a190/45e.png)
+
+* There are many ways to define the value of an environment variable. One way would be to define it when the application is started:
+
+  ```
+  MONGODB_URI=address_here npm run dev
+  ```
+
+* A more sophisticated way is to use the [dotenv](https://github.com/motdotla/dotenv#readme) library. You can install the library with the command:
+
+  ```
+  npm install dotenv
+  ```
+
+* To use the library, we create a *.env* file at the root of the project. The environment variables are defined inside of the file, and it can look like this:
+
+  ```
+  MONGODB_URI=mongodb+srv://fullstack:<password>@cluster0.o1opl.mongodb.net/noteApp?retryWrites=true&w=majority
+  PORT=3001
+  ```
+
+* We also added the hardcoded port of the server into the *PORT* environment variable.
+
+* The _.env_ file should be gitignored right away, since we do not want to publish any confidential information publicly online!
+
+  ![fullstack content](https://fullstackopen.com/static/e12482f21c1bd50aaa9fa2e9a85169f1/5a190/45ae.png)
+
+* The environment variables defined in the *.env* file can be taken into use with the expression `require('dotenv').config()` and you can reference them in your code just like you would reference normal environment variables, with the familiar `process.env.MONGODB_URI` syntax.
+
+* Let's change the *index.js* file in the following way:
+
+  ```javascript
+  require('dotenv').config()
+  const express = require('express')
+  const app = express()
+  const Note = require('./models/note')
+  
+  // ..
+  
+  const PORT = process.env.PORT
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`)
+  })
+  ```
+
+* It's important that *dotenv* gets imported before the *note* model is imported. This ensures that the environment variables from the *.env* file are available globally before the code from the other modules is imported.
+
+* Once the file .env has been gitignored, Heroku does not get the database url from the repository, so you have to set it yourself.
+
+* That can be done through the Heroku dashboard as follows:
+
+  ![fullstack content](https://fullstackopen.com/static/c153a824158cc5268d60867e176771d3/5a190/herokuConfig.png)
+
+* or from the command line with the command:
+
+  ```
+  heroku config:set MONGODB_URI='mongodb+srv://fullstack:<password>@cluster0.o1opl.mongodb.net/noteApp?retryWrites=true&w=majority'
+  ```
+
+* Because GitHub is not used with Fly.io, also the file .env gets to the Fly.io servers when the app is deployed. Because of this also the env variables defined in the file will be available there.
+
+* However, a [better option](https://community.fly.io/t/clarification-on-environment-variables/6309) is to prevent .env form being copied to Fly.io by creating to the project root the file *.dockerignore*, with the following contents
+
+  ```
+  .env
+  ```
+
+* and set the env value from the command line with the command:
+
+  ```
+  fly secrets set MONGODB_URI='mongodb+srv://fullstack:<password>@cluster0.o1opl.mongodb.net/noteApp?retryWrites=true&w=majority'
+  ```
+
+#### Using database in route handlers
+
+* Next, let's change the rest of the backend functionality to use the database.
+
+* Creating a new note is accomplished like this:
+
+  ```javascript
+  app.post('/api/notes', (request, response) => {
+    const body = request.body
+  
+    if (body.content === undefined) {
+      return response.status(400).json({ error: 'content missing' })
+    }
+  
+    const note = new Note({
+      content: body.content,
+      important: body.important || false,
+      date: new Date(),
+    })
+  
+    note.save().then(savedNote => {
+      response.json(savedNote)
+    })
+  })
+  ```
+
+* The note objects are created with the *Note* constructor function. The response is sent inside of the callback function for the *save* operation. This ensures that the response is sent only if the operation succeeded. We will discuss error handling a little bit later.
+
+* The *savedNote* parameter in the callback function is the saved and newly created note. The data sent back in the response is the formatted version created with the *toJSON* method:
+
+  ```
+  response.json(savedNote)
+  ```
+
+* Using Mongoose's [findById](https://mongoosejs.com/docs/api/model.html#model_Model-findById) method, fetching an individual note gets changed into the following:
+
+  ```javascript
+  app.get('/api/notes/:id', (request, response) => {
+    Note.findById(request.params.id).then(note => {
+      response.json(note)
+    })
+  })
+  ```
+
+#### Verifying frontend and backend integration
+
+#### Error handling
+
+#### Moving error handling into middleware
+
+#### The order of middleware loading
+
+#### Other operations
+
+* Let's add some missing functionality to our application, including deleting and updating an individual note.
+
+* The easiest way to delete a note from the database is with the [findByIdAndRemove](https://mongoosejs.com/docs/api/model.html#model_Model-findByIdAndRemove) method:
+
+  ```javascript
+  app.delete('/api/notes/:id', (request, response, next) => {
+    Note.findByIdAndRemove(request.params.id)
+      .then(result => {
+        response.status(204).end()
+      })
+      .catch(error => next(error))
+  })
+  ```
+
+* In both of the "successful" cases of deleting a resource, the backend responds with the status code *204 no content*. The two different cases are deleting a note that exists, and deleting a note that does not exist in the database. The *result* callback parameter could be used for checking if a resource was actually deleted, and we could use that information for returning different status codes for the two cases if we deemed it necessary. Any exception that occurs is passed onto the error handler.
+
+* The toggling of the importance of a note can be easily accomplished with the [findByIdAndUpdate](https://mongoosejs.com/docs/api/model.html#model_Model-findByIdAndUpdate) method.
+
+  ```javascript
+  app.put('/api/notes/:id', (request, response, next) => {
+    const body = request.body
+  
+    const note = {
+      content: body.content,
+      important: body.important,
+    }
+  
+    Note.findByIdAndUpdate(request.params.id, note, { new: true })
+      .then(updatedNote => {
+        response.json(updatedNote)
+      })
+      .catch(error => next(error))
+  })
+  ```
+
+* In the code above, we also allow the content of the note to be edited. However, we will not support changing the creation date for obvious reasons.
+
+* Notice that the `findByIdAndUpdate` method receives a regular JavaScript object as its parameter, and not a new note object created with the *Note* constructor function.
+
+* There is one important detail regarding the use of the *findByIdAndUpdate* method. By default, the *updatedNote* parameter of the event handler receives the original document [without the modifications](https://mongoosejs.com/docs/api/model.html#model_Model-findByIdAndUpdate). We added the optional `{ new: true }`parameter, which will cause our event handler to be called with the new modified document instead of the original.
+
+---
+
+### d) Validation and ESLint
+
+* There are usually constraints that we want to apply to the data that is stored in our application's database. Our application shouldn't accept notes that have a missing or empty *content* property. The validity of the note is checked in the route handler:
+
+  ```javascript
+  app.post('/api/notes', (request, response) => {
+    const body = request.body
+    if (body.content === undefined) {
+      return response.status(400).json({ error: 'content missing' })
+    }
+  
+    // ...
+  })
+  ```
+
+* If the note does not have the *content* property, we respond to the request with the status code *400 bad request*.
+
+* One smarter way of validating the format of the data before it is stored in the database, is to use the [validation](https://mongoosejs.com/docs/validation.html) functionality available in Mongoose.
+
+* We can define specific validation rules for each field in the schema:
+
+  ```javascript
+  const noteSchema = new mongoose.Schema({
+    content: {
+      type: String,
+      minLength: 5,
+      required: true
+    },
+    date: { 
+      type: Date,
+      required: true
+    },
+    important: Boolean
+  })
+  ```
+
+* The *content* field is now required to be at least five characters long. The *date* field is set as required, meaning that it can not be missing. The same constraint is also applied to the *content* field, since the minimum length constraint allows the field to be missing. We have not added any constraints to the *important* field, so its definition in the schema has not changed.
+
+* The *minLength* and *required* validators are [built-in](https://mongoosejs.com/docs/validation.html#built-in-validators) and provided by Mongoose. The Mongoose [custom validator](https://mongoosejs.com/docs/validation.html#custom-validators) functionality allows us to create new validators, if none of the built-in ones cover our needs.
+
+* If we try to store an object in the database that breaks one of the constraints, the operation will throw an exception. Let's change our handler for creating a new note so that it passes any potential exceptions to the error handler middleware:
+
+  ```javascript
+  app.post('/api/notes', (request, response, next) => {
+    const body = request.body
+  
+    const note = new Note({
+      content: body.content,
+      important: body.important || false,
+      date: new Date(),
+    })
+  
+    note.save()
+      .then(savedNote => {
+        response.json(savedNote)
+      })
+      .catch(error => next(error))
+  })
+  ```
+
+* Let's expand the error handler to deal with these validation errors:
+
+  ```javascript
+  const errorHandler = (error, request, response, next) => {
+    console.error(error.message)
+  
+    if (error.name === 'CastError') {
+      return response.status(400).send({ error: 'malformatted id' })
+    } else if (error.name === 'ValidationError') {
+      return response.status(400).json({ error: error.message })
+    }
+  
+    next(error)
+  }
+  ```
+
+* When validating an object fails, we return the following default error message from Mongoose:
+
+  ![fullstack content](https://fullstackopen.com/static/6beb35ed56d2e06e0eda3e36dea9f426/5a190/50.png)
+
+* We notice that the backend has now a problem: validations are not done when editing a note. The [documentation](https://github.com/blakehaswell/mongoose-unique-validator#find--updates) explains what is the problem, validations are not run by default when *findOneAndUpdate* is executed.
+
+* The fix is easy. Let us also reformulate the route code a bit:
+
+  ```javascript
+  app.put('/api/notes/:id', (request, response, next) => {
+    const { content, important } = request.body
+  
+    Note.findByIdAndUpdate(
+      request.params.id, 
+      { content, important },
+      { new: true, runValidators: true, context: 'query' }
+    ) 
+      .then(updatedNote => {
+        response.json(updatedNote)
+      })
+      .catch(error => next(error))
+  })
+  ```
+
+#### Deploying the database backend to production
+
+* The application should work almost as-is in Fly.io/Heroku. We do have to generate a new production build of the frontend since changes thus far were only on our backend.
+
+* The environment variables defined in dotenv will only be used when the backend is not in *production mode*, i.e. Fly.io or Heroku.
+
+* For the production usage we have to set the database URL in the service that is hosting our app.
+
+* In Fly.io that is done *fly secrets set*:
+
+  ```
+  fly secrets set MONGODB_URI='mongodb+srv://fullstack:<password>@cluster0.o1opl.mongodb.net/noteApp?retryWrites=true&w=majority'
+  ```
+
+* The application should now work. Sometimes things don't go according to plan. If there are problems, *fly logs* or *heroku logs* will be there to help.
+
+* I had an issue with my application after deployment to Fly.io. The individual notes were not showing. I used _fly logs_ to see if I could locate the problem. One of the logs indicated that it could be that my IP address was not whitelisted from the MongoDB site. I tried the option to access the database from any IP address. The log message went away, but I still was unable to see the individual notes. I tried changing something back that the course originally told me to change. It had to do with the `PORT`. I changed this line of code
+
+  ```javascript
+  const PORT = process.env.PORT;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+  ```
+
+  back to this line of code
+
+  ```javascript
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+  ```
+
+#### Lint
