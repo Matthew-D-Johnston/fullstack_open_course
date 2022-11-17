@@ -856,3 +856,145 @@
 * There is also a script `npm run logs:prod` to show the Fly.io logs.
 
 * Note that the directory paths in the script *build:ui* depend on the location of repositories in the file system.
+
+---
+
+### c) Saving data to MongoDB
+
+#### MongoDB
+
+* In order to store our saved notes indefinitely, we need a database. Most of the courses taught at the University of Helsinki use relational databases. In most parts of this course we will use [MongoDB](https://www.mongodb.com/) which is a so-called [document database](https://en.wikipedia.org/wiki/Document-oriented_database).
+
+* Let's not add any code dealing with Mongo to our backend just yet. Instead, let's make a practice application by creating a new file, *mongo.js*:
+
+  ```javascript
+  const mongoose = require('mongoose')
+  
+  if (process.argv.length < 3) {
+    console.log('Please provide the password as an argument: node mongo.js <password>')
+    process.exit(1)
+  }
+  
+  const password = process.argv[2]
+  
+  const url = `mongodb+srv://notes-app-full:${password}@cluster1.lvvbt.mongodb.net/?retryWrites=true&w=majority`
+  
+  const noteSchema = new mongoose.Schema({
+    content: String,
+    date: Date,
+    important: Boolean,
+  })
+  
+  const Note = mongoose.model('Note', noteSchema)
+  
+  mongoose
+    .connect(url)
+    .then((result) => {
+      console.log('connected')
+  
+      const note = new Note({
+        content: 'HTML is Easy',
+        date: new Date(),
+        important: true,
+      })
+  
+      return note.save()
+    })
+    .then(() => {
+      console.log('note saved!')
+      return mongoose.connection.close()
+    })
+    .catch((err) => console.log(err))
+  ```
+
+* **NB:** Depending on which region you selected when building your cluster, the *MongoDB URI* may be different from the example provided above. You should verify and use the correct URI that was generated from MongoDB Atlas.
+
+* The code also assumes that it will be passed the password from the credentials we created in MongoDB Atlas, as a command line parameter. We can access the command line parameter like this:
+
+  ```javascript
+  const password = process.argv[2]
+  ```
+
+* When the code is run with the command *node mongo.js password*, Mongo will add a new document to the database.
+
+* Let's destroy the default database *myFirstDatabase* and change the name of database referenced in our connection string to *noteApp* instead, by modifying the URI:
+
+  ```javascript
+  mongodb+srv://fullstack:$<password>@cluster0.o1opl.mongodb.net/noteApp?retryWrites=true&w=majority
+  ```
+
+#### Schema
+
+* After establishing the connection to the database, we define the [schema](http://mongoosejs.com/docs/guide.html) for a note and the matching [model](http://mongoosejs.com/docs/models.html):
+
+  ```javascript
+  const noteSchema = new mongoose.Schema({
+    content: String,
+    date: Date,
+    important: Boolean,
+  });
+  
+  const Note = mongoose.model('Note', noteSchema);
+  ```
+
+* First we define the schema of a note that is stored in the `noteSchema` variable. The schema tells Mongoose how the note objects are to be stored in the database.  
+
+* In the `Note` model definition, the first _"Note"_ parameter is the singular name of the model. The name of the collection will be the lowercased plural _notes_, because the Mongoose convention is to automatically name collections as the plural (e.g. _notes_) when the schema refers to them in the singular (e.g. _Note_).
+
+* Document databases like Mongo are *schemaless*, meaning that the database itself does not care about the structure of the data that is stored in the database. It is possible to store documents with completely different fields in the same collection.
+
+* The idea behind Mongoose is that the data stored in the database is given a *schema at the level of the application* that defines the shape of the documents stored in any given collection.
+
+#### Creating and saving objects
+
+* Next, the application creates a new note object with the help of the *Note* [model](http://mongoosejs.com/docs/models.html):
+
+  ```javascript
+  const note = new Note({
+    content: 'HTML is Easy',
+    date: new Date(),
+    important: false,
+  });
+  ```
+
+* Models are so-called *constructor functions* that create new JavaScript objects based on the provided parameters. Since the objects are created with the model's constructor function, they have all the properties of the model, which include methods for saving the object to the database.
+
+* Saving the object to the database happens with the appropriately named *save* method, that can be provided with an event handler with the *then* method:
+
+  ```javascript
+  note.save().then(result => {
+    console.log('note saved!');
+    mongoose.connection.close();
+  });
+  ```
+
+* When the object is saved to the database, the event handler provided to *then* gets called. The event handler closes the database connection with the command `mongoose.connection.close()`. If the connection is not closed, the program will never finish its execution.
+
+#### Fetching objects from the database
+
+* Let's comment out the code for generating new notes and replace it with the following:
+
+  ```javascript
+  Note.find({}).then(result => {
+    result.forEach(note => {
+      console.log(note);
+    });
+    mongoose.connection.close();
+  })
+  ```
+
+* When the code is executed, the program prints all the notes stored in the database:
+
+* The objects are retrieved from the database with the [find](https://mongoosejs.com/docs/api/model.html#model_Model-find) method of the *Note* model. The parameter of the method is an object expressing search conditions. Since the parameter is an empty object`{}`, we get all of the notes stored in the *notes* collection.
+
+* The search conditions adhere to the Mongo search query [syntax](https://docs.mongodb.com/manual/reference/operator/).
+
+* We could restrict our search to only include important notes like this:
+
+  ```javascript
+  Note.find({ important: true }).then(result => {
+    // ...
+  });
+  ```
+
+#### Backend connected to a database
