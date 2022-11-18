@@ -657,7 +657,7 @@
   ```javascript
   const cors = require('cors');
   
-  app.use(cors);
+  app.use(cors());
   ```
 
 * And the frontend works! However, the functionality for changing the importance of notes has not yet been implemented to the backend.
@@ -1434,3 +1434,99 @@
   ```
 
 #### Lint
+
+* Before we move onto the next part, we will take a look at an important tool called [lint](https://en.wikipedia.org/wiki/Lint_(software)). Wikipedia says the following about lint:
+
+  _Generically, lint or a linter is any tool that detects and flags errors in programming languages, including stylistic errors. The term lint-like behaviour is sometimes applied to the process of flagging suspicious language usage. Lint-like tools generally perform static analysis of source code_.
+
+* In the JavaScript universe, the current leading tool for static analysis aka. "linting" is [ESlint](https://eslint.org/).
+
+* Let's install ESlint as a development dependency to the backend project with the command:
+
+  ```
+  npm install eslint --save-dev
+  ```
+
+* After this we can initialize a default ESlint configuration with the command:
+
+  ```
+  npx eslint --init
+  ```
+
+* We will answer all of the questions:
+
+  ![fullstack content](https://fullstackopen.com/static/ba1423527692484103dcb2b7374eeb01/5a190/52be.png)
+
+* The configuration will be saved in the *.eslintrc.js* file:
+
+  ```javascript
+  module.exports = {
+      'env': {
+          'commonjs': true,
+          'es2021': true,
+          'node': true
+      },
+      'extends': 'eslint:recommended',
+      'parserOptions': {
+          'ecmaVersion': 'latest'
+      },
+      'rules': {
+          'indent': [
+              'error',
+              4
+          ],
+          'linebreak-style': [
+              'error',
+              'unix'
+          ],
+          'quotes': [
+              'error',
+              'single'
+          ],
+          'semi': [
+              'error',
+              'never'
+          ]
+      }
+  }
+  ```
+
+* Let's immediately change the rule concerning indentation, so that the indentation level is two spaces.
+
+  ```javascript
+  "indent": [
+      "error",
+      2
+  ],
+  ```
+
+* Inspecting and validating a file like *index.js* can be done with the following command:
+
+  ```
+  npx eslint index.js
+  ```
+
+* It is recommended to create a separate *npm script* for linting:
+
+  ```javascript
+  {
+    // ...
+    "scripts": {
+      "start": "node index.js",
+      "dev": "nodemon index.js",
+      // ...
+      "lint": "eslint ."
+    },
+    // ...
+  }
+  ```
+
+* Now the *npm run lint* command will check every file in the project.
+
+* Also the files in the *build* directory get checked when the command is run. We do not want this to happen, and we can accomplish this by creating an [.eslintignore](https://eslint.org/docs/user-guide/configuring#ignoring-files-and-directories) file in the project's root with the following contents:
+
+  ```
+  build
+  ```
+
+* This causes the entire *build* directory to not be checked by ESlint.
