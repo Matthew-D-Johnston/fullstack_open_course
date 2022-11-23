@@ -1271,6 +1271,113 @@
 
 ---
 
----
+### d) End to end testing
 
-#### d) End to end testing
+* So far we have tested the backend as a whole on an API level using integration tests, and tested some frontend components using unit tests.
+* Next we will look into one way to test the [system as a whole](https://en.wikipedia.org/wiki/System_testing) using *End to End* (E2E) tests.
+* We can do E2E testing of a web application using a browser and a testing library. There are multiple libraries available, for example [Selenium](http://www.seleniumhq.org/) which can be used with almost any browser. Another browser option are so called [headless browsers](https://en.wikipedia.org/wiki/Headless_browser), which are browsers with no graphical user interface. For example Chrome can be used in Headless-mode.
+* E2E tests are potentially the most useful category of tests, because they test the system through the same interface as real users use.
+* They do have some drawbacks too. Configuring E2E tests is more challenging than unit or integration tests. They also tend to be quite slow, and with a large system their execution time can be minutes, even hours. This is bad for development, because during coding it is beneficial to be able to run tests as often as possible in case of code [regressions](https://en.wikipedia.org/wiki/Regression_testing).
+* E2E tests can also be [flaky](https://hackernoon.com/flaky-tests-a-war-that-never-ends-9aa32fdef359). Some tests might pass one time and fail another, even if the code does not change at all.
+
+#### Cypress
+
+* E2E library [Cypress](https://www.cypress.io/) has become popular within the last year. Cypress is exceptionally easy to use, and when compared to Selenium, for example, it requires a lot less hassle and headache. Its operating principle is radically different than most E2E testing libraries, because Cypress tests are run completely within the browser. Other libraries run the tests in a Node-process, which is connected to the browser through an API.
+
+* Let's make some end to end tests for our note application.
+
+* We begin by installing Cypress to *the frontend* as development dependency
+
+  ```
+  npm install --save-dev cypress
+  ```
+
+* and by adding an npm-script to run it:
+
+  ```json
+  {
+    // ...
+    "scripts": {
+      "start": "react-scripts start",
+      "build": "react-scripts build",
+      "test": "react-scripts test",
+      "eject": "react-scripts eject",
+      "server": "json-server -p3001 db.json",
+      "cypress:open": "cypress open"
+    },
+    // ...
+  }
+  ```
+
+* Unlike the frontend's unit tests, Cypress tests can be in the frontend or the backend repository, or even in their own separate repository.
+
+* The tests require the tested system to be running. Unlike our backend integration tests, Cypress tests *do not start* the system when they are run.
+
+* Let's add an npm-script to *the backend* which starts it in test mode, or so that *NODE_ENV* is *test*.
+
+  ```json
+  {
+    // ...
+    "scripts": {
+      "start": "cross-env NODE_ENV=production node index.js",
+      "dev": "cross-env NODE_ENV=development nodemon index.js",
+      "build:ui": "rm -rf build && cd ../../../2/luento/notes && npm run build && cp -r build ../../../3/luento/notes-backend",
+      "deploy": "git push heroku master",
+      "deploy:full": "npm run build:ui && git add . && git commit -m uibuild && git push && npm run deploy",
+      "logs:prod": "heroku logs --tail",
+      "lint": "eslint .",
+      "test": "cross-env NODE_ENV=test jest --verbose --runInBand",
+      "start:test": "cross-env NODE_ENV=test node index.js"
+    },
+    // ...
+  }
+
+* NB! In order to get Cypress working with WSL2 one might need to do some additional configuring first. These two [links](https://docs.cypress.io/guides/getting-started/installing-cypress#Windows-Subsystem-for-Linux) are great places to [start](https://nickymeuleman.netlify.app/blog/gui-on-wsl2-cypress).
+
+* When both backend and frontend are running, we can start Cypress with the command
+
+  ```
+  npm run cypress:open
+  ```
+
+* When we first run Cypress, it creates a *cypress* directory. It contains an *e2e* subdirectory, where we will place our tests. Cypress creates a bunch of example tests for us in two subdirectories: the *e2e/1-getting-started* and the *e2e/2-advanced-examples* directory. We can delete both directories and make our own test in file *note_app.cy.js*:
+
+  ```javascript
+  describe('Note app', function() {
+    it('front page can be opened', function() {
+      cy.visit('http://localhost:3000')
+      cy.contains('Notes')
+      cy.contains('Note app, Department of Computer Science, University of Helsinki 2022')
+    })
+  })
+  ```
+
+* We start the test from the opened window:
+
+  ![fullstack content](https://fullstackopen.com/static/25ea2de79c4baf16c9757717159703bd/5a190/40x.png)
+
+* **NOTE**: you might need to restart Cypress after deleting the example tests.
+
+* Running the test opens your browser and shows how the application behaves as the test is run:
+
+  ![fullstack content](https://fullstackopen.com/static/2a0564aa7f4cd97a2286c9cb3181851b/5a190/32x.png)
+
+* The structure of the test should look familiar. They use *describe* blocks to group different test cases like Jest does. The test cases have been defined with the *it* method. Cypress borrowed these parts from the [Mocha](https://mochajs.org/) testing library it uses under the hood.
+* [cy.visit](https://docs.cypress.io/api/commands/visit.html) and [cy.contains](https://docs.cypress.io/api/commands/contains.html) are Cypress commands, and their purpose is quite obvious. [cy.visit](https://docs.cypress.io/api/commands/visit.html) opens the web address given to it as a parameter in the browser used by the test. [cy.contains](https://docs.cypress.io/api/commands/contains.html) searches for the string it received as a parameter from the page.
+
+#### Writing to a form
+
+* Let's extend our tests so that the test tries to log in to our application. We assume our backend contains a user with the username *mluukkai* and password *salainen*.
+
+#### Some things to note
+
+#### Testing new note form
+
+#### Failed login test
+
+#### Bypassing the UI
+
+#### Changing the importance of a note
+
+#### Running and debugging the tests
+
