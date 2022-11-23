@@ -860,3 +860,417 @@
 
 #### PropTypes
 
+* The *Togglable* component assumes that it is given the text for the button via the *buttonLabel* prop. If we forget to define it to the component:
+
+  ```javascript
+  <Togglable> buttonLabel forgotten... </Togglable>
+  ```
+
+* The application works, but the browser renders a button that has no label text.
+
+* We would like to enforce that when the *Togglable* component is used, the button label text prop must be given a value.
+
+* The expected and required props of a component can be defined with the [prop-types](https://github.com/facebook/prop-types) package. Let's install the package:
+
+  ```
+  npm install prop-types
+  ```
+
+* We can define the *buttonLabel* prop as a mandatory or *required* string-type prop as shown below:
+
+  ```javascript
+  import PropTypes from 'prop-types'
+  
+  const Togglable = React.forwardRef((props, ref) => {
+    // ..
+  })
+  
+  Togglable.propTypes = {
+    buttonLabel: PropTypes.string.isRequired
+  }
+  ```
+
+* The console will display the following error message if the prop is left undefined:
+
+  ![fullstack content](https://fullstackopen.com/static/7a239ed6d3ad6721a65ae3ac24eb29b5/5a190/15.png)
+
+* The application still works and nothing forces us to define props despite the PropTypes definitions. Mind you, it is extremely unprofessional to leave *any* red output to the browser console.
+
+* Let's also define PropTypes to the *LoginForm* component:
+
+  ```javascript
+  import PropTypes from 'prop-types'
+  
+  const LoginForm = ({
+     handleSubmit,
+     handleUsernameChange,
+     handlePasswordChange,
+     username,
+     password
+    }) => {
+      // ...
+    }
+  
+  LoginForm.propTypes = {
+    handleSubmit: PropTypes.func.isRequired,
+    handleUsernameChange: PropTypes.func.isRequired,
+    handlePasswordChange: PropTypes.func.isRequired,
+    username: PropTypes.string.isRequired,
+    password: PropTypes.string.isRequired
+  }
+  ```
+
+* If the type of a passed prop is wrong, e.g. if we try to define the *handleSubmit* prop as a string, then this will result in the following warning:
+
+  ![fullstack content](https://fullstackopen.com/static/ec732518823c5e2921d46285e5549bf3/5a190/16.png)
+
+#### ESlint
+
+* In part 3 we configured the [ESlint](https://fullstackopen.com/en/part3/validation_and_es_lint#lint) code style tool to the backend. Let's take ESlint to use in the frontend as well.
+
+* Create-react-app has installed ESlint to the project by default, so all that's left for us to do is to define our desired configuration in the *.eslintrc.js* file.
+
+* *NB:* do not run the *eslint --init* command. It will install the latest version of ESlint that is not compatible with the configuration file created by create-react-app!
+
+* Next, we will start testing the frontend and in order to avoid undesired and irrelevant linter errors we will install the [eslint-plugin-jest](https://www.npmjs.com/package/eslint-plugin-jest) package:
+
+  ```
+  npm install --save-dev eslint-plugin-jest
+  ```
+
+* Let's create a *.eslintrc.js* file with the following contents:
+
+  ```javascript
+  /* eslint-env node */
+  module.exports = {
+    "env": {
+        "browser": true,
+        "es6": true,
+        "jest/globals": true 
+    },
+    "extends": [ 
+        "eslint:recommended",
+        "plugin:react/recommended"
+    ],
+    "parserOptions": {
+        "ecmaFeatures": {
+            "jsx": true
+        },
+        "ecmaVersion": 2018,
+        "sourceType": "module"
+    },
+    "plugins": [
+        "react", "jest"
+    ],
+    "rules": {
+        "indent": [
+            "error",
+            2  
+        ],
+        "linebreak-style": [
+            "error",
+            "unix"
+        ],
+        "quotes": [
+            "error",
+            "single"
+        ],
+        "semi": [
+            "error",
+            "never"
+        ],
+        "eqeqeq": "error",
+        "no-trailing-spaces": "error",
+        "object-curly-spacing": [
+            "error", "always"
+        ],
+        "arrow-spacing": [
+            "error", { "before": true, "after": true }
+        ],
+        "no-console": 0,
+        "react/prop-types": 0,
+        "react/react-in-jsx-scope": "off"
+    },
+    "settings": {
+      "react": {
+        "version": "detect"
+      }
+    }
+  }
+  ```
+
+* Let's create [.eslintignore](https://eslint.org/docs/user-guide/configuring#ignoring-files-and-directories) file with the following contents to the repository root
+
+  ```
+  node_modules
+  build
+  .eslintrc.js
+  ```
+
+* Now the directories *build* and *node_modules* will be skipped when linting.
+
+* Let us also create a npm script to run the lint:
+
+  ```json
+  {
+    // ...
+    {
+      "scripts": {
+      "start": "react-scripts start",
+      "build": "react-scripts build",
+      "test": "react-scripts test",
+      "eject": "react-scripts eject",
+      "server": "json-server -p3001 db.json",
+      "eslint": "eslint ."
+    },
+    // ...
+  }
+  ```
+
+---
+
+### c) Testing React apps
+
+* There are many different ways of testing React applications. Let's take a look at them next.
+
+* Tests will be implemented with the same [Jest](http://jestjs.io/) testing library developed by Facebook that was used in the previous part. Jest is actually configured by default to applications created with create-react-app.
+
+* In addition to Jest, we also need another testing library that will help us render components for testing purposes. The current best option for this is [react-testing-library](https://github.com/testing-library/react-testing-library) which has seen rapid growth in popularity in recent times.
+
+* Let's install the library with the command:
+
+  ```
+  npm install --save-dev @testing-library/react @testing-library/jest-dom
+  ```
+
+* We also installed [jest-dom](https://testing-library.com/docs/ecosystem-jest-dom/) that provides some nice Jest-related helper methods.
+
+* Let's first write tests for the component that is responsible for rendering a note:
+
+  ```javascript
+  const Note = ({ note, toggleImportance }) => {
+    const label = note.important
+      ? 'make not important'
+      : 'make important'
+  
+    return (
+      <li className='note'>
+        {note.content}
+        <button onClick={toggleImportance}>{label}</button>
+      </li>
+    )
+  }
+  ```
+
+* Notice that the *li* element has the [CSS](https://reactjs.org/docs/dom-elements.html#classname) classname *note*, that could be used to access the component in our tests.
+
+#### Rendering the component for tests
+
+* We will write our test in the *src/components/Note.test.js* file, which is in the same directory as the component itself.
+
+* The first test verifies that the component renders the contents of the note:
+
+  ```javascript
+  import React from 'react'
+  import '@testing-library/jest-dom/extend-expect'
+  import { render, screen } from '@testing-library/react'
+  import Note from './Note'
+  
+  test('renders content', () => {
+    const note = {
+      content: 'Component testing is done with react-testing-library',
+      important: true
+    }
+  
+    render(<Note note={note} />)
+  
+    const element = screen.getByText('Component testing is done with react-testing-library')
+    expect(element).toBeDefined()
+  })
+  ```
+
+* After the initial configuration, the test renders the component with the [render](https://testing-library.com/docs/react-testing-library/api#render) function provided by the react-testing-library:
+
+  ```javascript
+  render(<Note note={note} />)
+  ```
+
+* Normally React components are rendered to the *DOM*. The render method we used renders the components in a format that is suitable for tests without rendering them to the DOM.
+
+* We can use the object [screen](https://testing-library.com/docs/queries/about#screen) to access the rendered component. We use screen's method [getByText](https://testing-library.com/docs/queries/bytext) to search for an element that has the note content and ensure that it exists:
+
+  ```javascript
+    const element = screen.getByText('Component testing is done with react-testing-library')
+    expect(element).toBeDefined()
+  ```
+
+#### Running tests
+
+* Create-react-app configures tests to be run in watch mode by default, which means that the *npm test* command will not exit once the tests have finished, and will instead wait for changes to be made to the code. Once new changes to the code are saved, the tests are executed automatically after which Jest goes back to waiting for new changes to be made.
+
+* If you want to run tests "normally", you can do so with the command:
+
+  ```
+  CI=true npm test
+  ```
+
+#### Test file location
+
+#### Searching for content in a component
+
+* The react-testing-library package offers many different ways of investigating the content of the component being tested. Actually the *expect* in our test is not needed at all
+
+  ```javascript
+  import React from 'react'
+  import '@testing-library/jest-dom/extend-expect'
+  import { render, screen } from '@testing-library/react'
+  import Note from './Note'
+  
+  test('renders content', () => {
+    const note = {
+      content: 'Component testing is done with react-testing-library',
+      important: true
+    }
+  
+    render(<Note note={note} />)
+  
+    const element = screen.getByText('Component testing is done with react-testing-library')
+  
+    expect(element).toBeDefined()
+  })
+  ```
+
+* Test fails if *getByText* does not find the element it is looking for.
+
+* We could also use [CSS-selectors](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors) to find rendered elements by using the method [querySelector](https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelector) of the object [container](https://testing-library.com/docs/react-testing-library/api/#container-1) that is one of the fields returned by the render:
+
+  ```javascript
+  import React from 'react'
+  import '@testing-library/jest-dom/extend-expect'
+  import { render, screen } from '@testing-library/react'
+  import Note from './Note'
+  
+  test('renders content', () => {
+    const note = {
+      content: 'Component testing is done with react-testing-library',
+      important: true
+    }
+  
+    const { container } = render(<Note note={note} />)
+  
+    const div = container.querySelector('.note')
+    expect(div).toHaveTextContent(
+      'Component testing is done with react-testing-library'
+    )
+  })
+  ```
+
+* There are also other methods, eg. [getByTestId](https://testing-library.com/docs/queries/bytestid/), that is looking for elements based on id-attributes that are inserted to the code specifically for testing purposes.
+
+#### Debugging tests
+
+* We typically run into many different kinds of problems when writing our tests.
+
+* Object *screen* has method [debug](https://testing-library.com/docs/queries/about/#screendebug) that can be used to print the HTML of a component to terminal. If we change the test as follows:
+
+  ```javascript
+  import React from 'react'
+  import '@testing-library/jest-dom/extend-expect'
+  import { render, screen } from '@testing-library/react'
+  import Note from './Note'
+  
+  test('renders content', () => {
+    const note = {
+      content: 'Component testing is done with react-testing-library',
+      important: true
+    }
+  
+    render(<Note note={note} />)
+  
+    screen.debug()
+  
+    // ...
+  
+  })
+  ```
+
+* the HTML gets printed to the console:
+
+  ```javascript
+  console.log
+    <body>
+      <div>
+        <li
+          class="note"
+        >
+          Component testing is done with react-testing-library
+          <button>
+            make not important
+          </button>
+        </li>
+      </div>
+    </body>
+  ```
+
+* It is also possible to use the same method to print a wanted element to console:
+
+  ```javascript
+  import React from 'react'
+  import '@testing-library/jest-dom/extend-expect'
+  import { render, screen } from '@testing-library/react'
+  import Note from './Note'
+  
+  test('renders content', () => {
+    const note = {
+      content: 'Component testing is done with react-testing-library',
+      important: true
+    }
+  
+    render(<Note note={note} />)
+  
+    const element = screen.getByText('Component testing is done with react-testing-library')
+  
+    screen.debug(element)
+  
+    expect(element).toBeDefined()
+  })
+  ```
+
+* Now the HTML of the wanted element gets printed:
+
+  ```javascript
+    <li
+      class="note"
+    >
+      Component testing is done with react-testing-library
+      <button>
+        make not important
+      </button>
+    </li>
+  ```
+
+#### Clicking buttons in tests
+
+#### Testing the forms
+
+#### About finding the elements
+
+#### Test coverage
+
+* We can easily find out the [coverage](https://github.com/facebookincubator/create-react-app/blob/ed5c48c81b2139b4414810e1efe917e04c96ee8d/packages/react-scripts/template/README.md#coverage-reporting) of our tests by running them with the command.
+
+  ```
+  CI=true npm test -- --coverage
+  ```
+
+  ![fullstack content](https://fullstackopen.com/static/16f2c3fc4d647dd6810c2952cb90f20d/5a190/18ea.png)
+
+* A quite primitive HTML report will be generated to the *coverage/lcov-report* directory. The report will tell us the lines of untested code in each component:
+
+  ![fullstack content](https://fullstackopen.com/static/bd3bded5360602a1aba8c503460bec3d/5a190/19ea.png)
+
+---
+
+---
+
+#### d) End to end testing

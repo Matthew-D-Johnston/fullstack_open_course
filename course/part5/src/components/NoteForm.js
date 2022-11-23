@@ -13,10 +13,12 @@ const NoteForm = ({ createNote }) => {
       content: newNote,
       important: Math.random() > 0.5,
     });
+
+    setNewNote('');
   };
 
   return (
-    <div>
+    <div className='formDiv'>
       <h2>Create a new note</h2>
 
       <form onSubmit={addNote}>
@@ -28,6 +30,6 @@ const NoteForm = ({ createNote }) => {
       </form>
     </div>
   );
-}
+};
 
 export default NoteForm;
