@@ -61,3 +61,40 @@
 ---
 
 ### b) Many reducers
+
+#### Store with complex state
+
+#### Finishing the filters
+
+#### Redux Toolkit
+
+---
+
+### c) Communicating with server in a redux application
+
+---
+
+### d) connect
+
+#### Using the connect-function to share the redux store to components
+
+#### mapDispatchToProps
+
+#### Referencing action creators passed as props
+
+#### Alternative way of using mapDispatchToProps
+
+#### Presentational/Container revisited
+
+#### Redux and the component state
+
+---
+
+### Some extra notes on Redux
+
+The Redux Cycle:
+
+Action Creator => Action => dispatch => Reducers => State
+
+From https://www.youtube.com/watch?v=3sjMRS1gJys
+
