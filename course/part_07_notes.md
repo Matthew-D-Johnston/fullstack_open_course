@@ -37,3 +37,39 @@
 
 #### Spread attributes
 
+---
+
+### c) More about styles
+
+#### Ready-made UI libraries
+
+---
+
+### d) Webpack
+
+#### Bundling
+
+#### Configuration file
+
+#### Bundling React
+
+#### Loaders
+
+#### Transpilers
+
+#### CSS
+
+#### Webpack-dev-server
+
+#### Source maps
+
+#### Minifying the code
+
+#### Development and production configuration
+
+#### Polyfill
+
+#### Eject
+
+---
+
