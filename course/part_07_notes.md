@@ -73,3 +73,23 @@
 
 ---
 
+### e) Class components, Miscellaneous
+
+#### Class Components
+
+#### Organization of code in React application
+
+#### Frontend and backend in the same repository
+
+#### Changes on the server
+
+#### Virtual DOM
+
+#### On the role of React in applications
+
+#### React/node-application security
+
+#### Current trends
+
+#### Useful libraries and interesting links
+
