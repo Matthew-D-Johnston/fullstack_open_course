@@ -13,3 +13,16 @@
 #### Creating your first own types
 
 #### @types/{npm_package}
+
+#### Improving the project
+
+#### More about tsconfig
+
+#### Adding Express to the mix
+
+#### The horrors of _any_
+
+---
+
+### c) Typing the express app
+
