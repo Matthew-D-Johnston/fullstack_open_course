@@ -26,3 +26,21 @@
 
 ### c) Typing the express app
 
+#### Setting up the project
+
+#### Let there be code
+
+#### Implementing the functionality
+
+#### Node and JSON modules
+
+#### Preventing an accidental undefined result
+
+#### Adding a new diary
+
+#### Proofing requests
+
+---
+
+### d) React with types
+
