@@ -57,3 +57,8 @@
 #### State handling
 
 #### Patient listing page
+
+#### Full entries
+
+#### Add patient form
+
