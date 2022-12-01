@@ -44,3 +44,16 @@
 
 ### d) React with types
 
+#### Create React App with TypeScript
+
+#### React components with TypeScript
+
+#### Deeper type usage
+
+#### A note about defining object types
+
+#### Patientor frontend
+
+#### State handling
+
+#### Patient listing page
